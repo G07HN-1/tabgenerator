@@ -151,7 +151,6 @@
                 }
             };
 
-            // Tab UI definition
             json[`top_tab@common_tabs.tab_top`] = {
                 layer: 100,
                 "$radio_toggle_group": true,
@@ -173,7 +172,6 @@
                 const tabID = `${namespace}_tab${idx}`;
                 const toggleID = `${tabID}_toggle`;
 
-                // Tab toggle
                 json[`${tabID}@${namespace}.top_tab`] = {
                     "$tab_view_binding_name": toggleID,
                     "$tab_text_name": `Tab ${idx}`,
@@ -181,14 +179,12 @@
                     "$tab_content": `${namespace}.tab${idx}_inside`
                 };
 
-                // Label inside tab
                 json[`tab${idx}_inside`] = {
                     type: "label",
                     text_alignment: "center",
                     text: `${idx}`
                 };
 
-                // Content: first one full, others reference it
                 if (i === 0) {
                     json[`${tabID}_content`] = {
                         type: "label",
