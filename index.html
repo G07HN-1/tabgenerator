@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Tab JSON Generator</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f0f0;
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333333;
+        }
+
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+            color: #555555;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #cccccc;
+            border-radius: 5px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        textarea {
+            height: 300px;
+            resize: vertical;
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            background-color: #007acc;
+            color: #ffffff;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #005fa3;
+        }
+
+        @media (max-width: 600px) {
+            .button-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Tab JSON Generator</h1>
+        <label for="namespace">Namespace:</label>
+        <input type="text" id="namespace" onchange="generateJSON()" placeholder="Enter namespace (e.g., mytabs)"
+            value="test" />
+
+        <label for="tabCount">Number of Tabs:</label>
+        <input type="number" id="tabCount" onchange="generateJSON()" value="3" />
+
+        <div class="button-group">
+            <button onclick="generateJSON()">Generate JSON</button>
+            <button onclick="copyJSON()">Copy to Clipboard</button>
+            <button onclick="downloadJSON()">Download JSON</button>
+        </div>
+
+        <label for="output">Output:</label>
+        <textarea id="output" readonly></textarea>
+    </div>
+
+    <script>
+        function generateJSON() {
+            const namespace = document.getElementById('namespace').value.trim() || 'test';
+            const tabCount = parseInt(document.getElementById('tabCount').value);
+            const output = document.getElementById('output');
+
+            const json = {
+                namespace,
+                [`main_panel`]: {
+                    type: "stack_panel",
+                    orientation: "vertical",
+                    anchor_from: "center",
+                    anchor_to: "center",
+                    size: [200, "100%c"],
+                    controls: [
+                        {
+                            [`stack`]: {
+                                type: "stack_panel",
+                                orientation: "horizontal",
+                                size: ["100%", "100%cm"],
+                                controls: Array.from({ length: tabCount }, (_, i) => {
+                                    const tabKey = `tab${i + 1}@${namespace}.${namespace}_tab${i + 1}`;
+                                    return { [tabKey]: { size: [`${100 / tabCount}%`, 24] } };
+                                })
+                            }
+                        },
+                        {
+                            "default_tab_content_panel_layout@play.common_tab_content_panel_type": {
+                                size: ["100%", 150],
+                                controls: [
+                                    {
+                                        "background": {
+                                            type: "image",
+                                            texture: "textures/form/backgrounds/default2",
+                                            controls: Array.from({ length: tabCount }, (_, i) => {
+                                                const contentKey = `tab${i + 1}@${namespace}.${namespace}_tab${i + 1}_content`;
+                                                return { [contentKey]: {} };
+                                            })
+                                        }
+                                    }
+                                ]
+                            }
+                        }
+                    ]
+                }
+            };
+
+            // Tab UI definition
+            json[`top_tab@common_tabs.tab_top`] = {
+                layer: 100,
+                "$radio_toggle_group": true,
+                "$toggle_name": "navigation_tab",
+                "$unchecked_default_image": "textures/ui/button_borderless_light",
+                "$unchecked_hover_image": "textures/ui/button_borderless_lighthover",
+                "$unchecked_locked_image": "textures/ui/button_borderless_light",
+                "$unchecked_locked_hover_image": "textures/ui/button_borderless_lighthover",
+                "$checked_default_image": "textures/ui/button_borderless_dark",
+                "$checked_hover_image": "textures/ui/button_borderless_darkhover",
+                "$checked_locked_image": "textures/ui/button_borderless_dark",
+                "$checked_locked_hover_image": "textures/ui/button_borderless_darkhover",
+                "$toggle_group_default_selected": `${namespace}.${namespace}_tab1`,
+                variables: []
+            };
+
+            for (let i = 0; i < tabCount; i++) {
+                const idx = i + 1;
+                const tabID = `${namespace}_tab${idx}`;
+                const toggleID = `${tabID}_toggle`;
+
+                // Tab toggle
+                json[`${tabID}@${namespace}.top_tab`] = {
+                    "$tab_view_binding_name": toggleID,
+                    "$tab_text_name": `Tab ${idx}`,
+                    "$toggle_group_forced_index": i,
+                    "$tab_content": `${namespace}.tab${idx}_inside`
+                };
+
+                // Label inside tab
+                json[`tab${idx}_inside`] = {
+                    type: "label",
+                    text_alignment: "center",
+                    text: `${idx}`
+                };
+
+                // Content: first one full, others reference it
+                if (i === 0) {
+                    json[`${tabID}_content`] = {
+                        type: "label",
+                        size: ["100% - 16.5px", "100% - 16.5px"],
+                        anchor_from: "center",
+                        anchor_to: "center",
+                        hide_hyphen: true,
+                        text: `Update ${idx}!\n\nAdded a new boat!\nMultiple bug fixes..`,
+                        "$visible_bind_toggle_source_control": toggleID,
+                        bindings: [
+                            {
+                                binding_type: "view",
+                                source_control_name: "$visible_bind_toggle_source_control",
+                                source_property_name: "#toggle_state",
+                                target_property_name: "#visible"
+                            }
+                        ]
+                    };
+                } else {
+                    json[`${tabID}_content@${namespace}.${namespace}_tab1_content`] = {
+                        text: `Update ${idx}!\n\nAdded a new boat!\nMultiple bug fixes..`,
+                        "$visible_bind_toggle_source_control": toggleID
+                    };
+                }
+            }
+            output.value = JSON.stringify(json, null, 2).replace(/\[\s+([^\[\]]+?)\s+\]/g, (match, content) => {
+                return '[' + content.replace(/\s*,\s*/g, ', ').trim() + ']';
+            });
+
+        }
+
+        function copyJSON() {
+            const text = document.getElementById('output').value;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('Copied to clipboard!');
+            });
+        }
+
+        function downloadJSON() {
+            const text = document.getElementById('output').value;
+            const blob = new Blob([text], { type: "application/json" });
+            const a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = "tabs.json";
+            a.click();
+        }
+    </script>
+</body>
+
+</html>
